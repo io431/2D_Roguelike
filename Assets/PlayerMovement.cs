@@ -4,12 +4,12 @@ using UnityEngine.Tilemaps;
 
 public class PlayerMovement : MonoBehaviour
 {
+    public int hp = 30;
     public Tilemap tilemap;
     public float moveDistance = 1f;
     public delegate void PlayerMoveHandler();
     public event PlayerMoveHandler OnMoveFinished;
 
-    // Animatorコンポーネントの参照を追加
     private Animator animator;
 
     private bool isMoving = false;
@@ -17,7 +17,6 @@ public class PlayerMovement : MonoBehaviour
 
     private void Awake()
     {
-        // Animatorコンポーネントを取得
         animator = GetComponent<Animator>();
     }
 
@@ -31,42 +30,54 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
-        float horizontalInput = Input.GetAxisRaw("Horizontal");
-        float verticalInput = Input.GetAxisRaw("Vertical");
+        // 変更点：GetAxisRawからGetKeyDownに変更
+        bool moveUp = Input.GetKeyDown(KeyCode.UpArrow);
+        bool moveDown = Input.GetKeyDown(KeyCode.DownArrow);
+        bool moveRight = Input.GetKeyDown(KeyCode.RightArrow);
+        bool moveLeft = Input.GetKeyDown(KeyCode.LeftArrow);
 
-        if (horizontalInput == 0 && verticalInput == 0) return;
+        if (!(moveUp || moveDown || moveRight || moveLeft)) return;
 
         Vector3Int currentCell = tilemap.WorldToCell(transform.position);
-        Vector3Int targetCell = currentCell + new Vector3Int(Mathf.RoundToInt(horizontalInput), Mathf.RoundToInt(verticalInput), 0);
+        Vector3Int targetCell;
+
+        if (moveUp) targetCell = currentCell + Vector3Int.up;
+        else if (moveDown) targetCell = currentCell + Vector3Int.down;
+        else if (moveRight) targetCell = currentCell + Vector3Int.right;
+        else if (moveLeft) targetCell = currentCell + Vector3Int.left;
+        else return;
+
+        if (moveUp) animator.SetInteger("Direction", 2);
+        else if (moveDown) animator.SetInteger("Direction", 0);
+        else if (moveRight) animator.SetInteger("Direction", 3);
+        else if (moveLeft) animator.SetInteger("Direction", 1);
+
+
+
 
         if (!IsWalkableTile(targetCell)) return;
 
+        if (IsEnemyTile(targetCell))
+        {
+            AttackEnemy(targetCell);
+            return;
+        }
+
         targetPosition = tilemap.GetCellCenterWorld(targetCell);
 
-        // 入力に基づいてAnimatorの方向パラメーターを更新
-        if (verticalInput > 0) animator.SetInteger("Direction", 2);      // 上
-        else if (verticalInput < 0) animator.SetInteger("Direction", 0); // 下
-        else if (horizontalInput > 0) animator.SetInteger("Direction", 3); // 右
-        else if (horizontalInput < 0) animator.SetInteger("Direction", 1); // 左
-
+       
         StartCoroutine(MovePlayer());
     }
     public bool IsWalkableTile(Vector3Int cellPosition)
     {
-        // タイルマップ上の位置からタイルを取得
         TileBase tile = tilemap.GetTile(cellPosition);
-
-        // タイルがnullでないかつ、歩けないタイルであればfalseを返す
-        return (tile != null && !tile.name.Contains("Unwalkable")); // "Unwalkable"は歩けないタイルの名前に応じて変更してください
+        return (tile != null && !tile.name.Contains("Unwalkable"));
     }
 
     private IEnumerator MovePlayer()
     {
         isMoving = true;
 
-        // 移動アニメーションなどの処理
-
-        // 移動
         while (transform.position != targetPosition)
         {
             transform.position = Vector2.MoveTowards(transform.position, targetPosition, moveDistance * Time.deltaTime);
@@ -75,5 +86,43 @@ public class PlayerMovement : MonoBehaviour
 
         isMoving = false;
         OnMoveFinished?.Invoke();
+    }
+
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.gameObject.CompareTag("item"))
+        {
+            Debug.Log("アイテムを獲得!");
+            Destroy(other.gameObject);
+        }
+    }
+
+    public bool IsEnemyTile(Vector3Int cellPosition)
+    {
+        // セル内のすべてのコライダーを取得
+        Collider2D[] colliders = Physics2D.OverlapCircleAll(tilemap.GetCellCenterWorld(cellPosition), 0.1f);
+        foreach (var collider in colliders)
+        {
+            if (collider.gameObject.CompareTag("Enemy"))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void AttackEnemy(Vector3Int cellPosition)
+    {
+        Collider2D[] colliders = Physics2D.OverlapCircleAll(tilemap.GetCellCenterWorld(cellPosition), 0.1f);
+        foreach (var collider in colliders)
+        {
+            if (collider.gameObject.CompareTag("Enemy"))
+            {
+               
+                Debug.Log("敵を攻撃!");
+                
+                break;
+            }
+        }
     }
 }

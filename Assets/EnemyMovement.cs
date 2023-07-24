@@ -11,8 +11,16 @@ public class EnemyMovement : MonoBehaviour
     private bool isMoving = false;
     private Vector3 targetPosition;
 
+    public AudioClip attackSound;  // 攻撃音
+    private AudioSource audioSource;
+ 
+   
+
+
+
     private void Start()
     {
+        audioSource = GetComponent<AudioSource>();
         player.OnMoveFinished += TryMove;
     }
 
@@ -23,19 +31,17 @@ public class EnemyMovement : MonoBehaviour
 
     private void TryMove()
     {
-        // 敵が移動中なら何もしない
         if (isMoving) return;
 
-        // プレイヤーの位置と敵の位置をタイルマップ上のセル座標に変換
         Vector3Int playerCell = tilemap.WorldToCell(player.transform.position);
         Vector3Int enemyCell = tilemap.WorldToCell(transform.position);
+        Vector3Int diff = playerCell - enemyCell;
 
-        // 横方向に移動を試みる
-        if (playerCell.x != enemyCell.x)
+        // 斜め移動を試みる
+        if (Mathf.Abs(diff.x) >= 1 && Mathf.Abs(diff.y) >= 1)
         {
-            Vector3Int targetCell = enemyCell + new Vector3Int((int)Mathf.Sign(playerCell.x - enemyCell.x), 0, 0);
-
-            // 移動先がプレイヤーのセルなら攻撃、そうでないならその方向に移動する
+            Vector3Int direction = new Vector3Int((int)Mathf.Sign(diff.x), (int)Mathf.Sign(diff.y), 0);
+            Vector3Int targetCell = enemyCell + direction;
             if (targetCell == playerCell)
             {
                 AttackPlayer();
@@ -48,23 +54,37 @@ public class EnemyMovement : MonoBehaviour
             }
         }
 
-        // 横方向に移動できない場合、縦方向に移動を試みる
-        if (playerCell.y != enemyCell.y)
+        // 斜めに移動できなければ、横または縦に移動を試みる
+        if (diff.x != 0)
         {
-            Vector3Int targetCell = enemyCell + new Vector3Int(0, (int)Mathf.Sign(playerCell.y - enemyCell.y), 0);
-
-            // 移動先がプレイヤーのセルなら攻撃、そうでないならその方向に移動する
+            Vector3Int targetCell = enemyCell + new Vector3Int((int)Mathf.Sign(diff.x), 0, 0);
             if (targetCell == playerCell)
             {
                 AttackPlayer();
+                return;
             }
             else if (player.IsWalkableTile(targetCell))
             {
                 StartCoroutine(MoveToCell(targetCell));
+                return;
+            }
+        }
+
+        if (diff.y != 0)
+        {
+            Vector3Int targetCell = enemyCell + new Vector3Int(0, (int)Mathf.Sign(diff.y), 0);
+            if (targetCell == playerCell)
+            {
+                AttackPlayer();
+                return;
+            }
+            else if (player.IsWalkableTile(targetCell))
+            {
+                StartCoroutine(MoveToCell(targetCell));
+                return;
             }
         }
     }
-
     private void EnemyTurn()
     {
         TryMove();
@@ -75,8 +95,8 @@ public class EnemyMovement : MonoBehaviour
         // プレイヤーを攻撃する処理
 
         Debug.Log("攻撃されたよ");
-
-        
+        audioSource.PlayOneShot(attackSound);
+     
     }
 
     private IEnumerator MoveToCell(Vector3Int targetCell)

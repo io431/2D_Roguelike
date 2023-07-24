@@ -64,6 +64,9 @@ public class PlayerMovement : MonoBehaviour
 
         if (!IsWalkableTile(targetCell)) return;
 
+        Debug.Log("targrtcell=" + targetCell);
+
+
         if (IsEnemyTile(targetCell)&&counter==1)
         {
             AttackEnemy(targetCell);

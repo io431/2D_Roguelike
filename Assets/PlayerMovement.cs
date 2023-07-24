@@ -14,7 +14,7 @@ public class PlayerMovement : MonoBehaviour
 
     private bool isMoving = false;
     private Vector3 targetPosition;
-
+    private int counter = 0;
     private void Awake()
     {
         animator = GetComponent<Animator>();
@@ -31,12 +31,19 @@ public class PlayerMovement : MonoBehaviour
         }
 
         // 変更点：GetAxisRawからGetKeyDownに変更
-        bool moveUp = Input.GetKeyDown(KeyCode.UpArrow);
-        bool moveDown = Input.GetKeyDown(KeyCode.DownArrow);
-        bool moveRight = Input.GetKeyDown(KeyCode.RightArrow);
-        bool moveLeft = Input.GetKeyDown(KeyCode.LeftArrow);
+        bool moveUp = Input.GetKey(KeyCode.UpArrow);
+        bool moveDown = Input.GetKey(KeyCode.DownArrow);
+        bool moveRight = Input.GetKey(KeyCode.RightArrow);
+        bool moveLeft = Input.GetKey(KeyCode.LeftArrow);
 
-        if (!(moveUp || moveDown || moveRight || moveLeft)) return;
+        if (!(moveUp || moveDown || moveRight || moveLeft))
+        {
+            counter = 0;
+            return;
+        }
+
+        counter++;
+
 
         Vector3Int currentCell = tilemap.WorldToCell(transform.position);
         Vector3Int targetCell;
@@ -57,7 +64,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (!IsWalkableTile(targetCell)) return;
 
-        if (IsEnemyTile(targetCell))
+        if (IsEnemyTile(targetCell)&&counter==1)
         {
             AttackEnemy(targetCell);
             return;

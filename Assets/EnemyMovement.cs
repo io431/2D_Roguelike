@@ -42,12 +42,7 @@ public class EnemyMovement : MonoBehaviour
         {
             Vector3Int direction = new Vector3Int((int)Mathf.Sign(diff.x), (int)Mathf.Sign(diff.y), 0);
             Vector3Int targetCell = enemyCell + direction;
-            if (targetCell == playerCell)
-            {
-                AttackPlayer();
-                return;
-            }
-            else if (player.IsWalkableTile(targetCell))
+       if (player.IsWalkableTile(targetCell))
             {
                 StartCoroutine(MoveToCell(targetCell));
                 return;
@@ -73,20 +68,29 @@ public class EnemyMovement : MonoBehaviour
         if (diff.y != 0)
         {
             Vector3Int targetCell = enemyCell + new Vector3Int(0, (int)Mathf.Sign(diff.y), 0);
-            if (targetCell == playerCell)
-            {
-                AttackPlayer();
-                return;
-            }
-            else if (player.IsWalkableTile(targetCell))
+       if (player.IsWalkableTile(targetCell))
             {
                 StartCoroutine(MoveToCell(targetCell));
                 return;
             }
         }
     }
-    private void EnemyTurn()
+
+
+    private void OnTriggerEnter2D(Collider2D other)
     {
+        // ÉvÉåÉCÉÑÅ[Ç∆ê⁄êGÇµÇΩèÍçá
+        if (other.gameObject.CompareTag("Player"))
+        {
+            AttackPlayer();
+        }
+    }
+
+
+
+
+    private void EnemyTurn()
+    {//çÌèúÇ∑ÇÈÇ©Ç‡
         TryMove();
     }
     private void AttackPlayer()

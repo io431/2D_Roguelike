@@ -1,4 +1,5 @@
 using System.Collections;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -8,13 +9,17 @@ public class PlayerMovement : MonoBehaviour
     public Tilemap tilemap;
     public float moveDistance = 1f;
     public delegate void PlayerMoveHandler();
-    public event PlayerMoveHandler OnMoveFinished;
+   
 
+    public EnemyMovement enemy;
     private Animator animator;
 
     private bool isMoving = false;
     private Vector3 targetPosition;
     private int counter = 0;
+
+    public Vector3Int targetCell;
+
     private void Awake()
     {
         animator = GetComponent<Animator>();
@@ -26,57 +31,69 @@ public class PlayerMovement : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            OnMoveFinished?.Invoke();
+            enemy.TryMove();
             return;
         }
 
-        // 変更点：GetAxisRawからGetKeyDownに変更
+       
+        // 変更点：GetAxisRawからGetKeyに変更
         bool moveUp = Input.GetKey(KeyCode.UpArrow);
         bool moveDown = Input.GetKey(KeyCode.DownArrow);
         bool moveRight = Input.GetKey(KeyCode.RightArrow);
         bool moveLeft = Input.GetKey(KeyCode.LeftArrow);
 
-        if (!(moveUp || moveDown || moveRight || moveLeft))
+        // 新規に追加：斜め移動のためのキー入力を検出
+        bool moveUpRight = moveUp && moveRight|| Input.GetKey(KeyCode.E);
+        bool moveUpLeft = moveUp && moveLeft|| Input.GetKey(KeyCode.Q);
+        bool moveDownRight = moveDown && moveRight|| Input.GetKey(KeyCode.C);
+        bool moveDownLeft = moveDown && moveLeft|| Input.GetKey(KeyCode.Z);
+
+        if (!(moveUp || moveDown || moveRight || moveLeft || moveUpRight || moveUpLeft || moveDownRight || moveDownLeft))
         {
+            //無限に攻撃コマンドが実行されない為の処理
             counter = 0;
             return;
         }
 
         counter++;
 
-
         Vector3Int currentCell = tilemap.WorldToCell(transform.position);
-        Vector3Int targetCell;
 
-        if (moveUp) targetCell = currentCell + Vector3Int.up;
+        // 斜め移動のための新しいターゲットセルの計算
+        if (moveUpRight) targetCell = currentCell + new Vector3Int(1, 1, 0);
+        else if (moveUpLeft) targetCell = currentCell + new Vector3Int(-1, 1, 0);
+        else if (moveDownRight) targetCell = currentCell + new Vector3Int(1, -1, 0);
+        else if (moveDownLeft) targetCell = currentCell + new Vector3Int(-1, -1, 0);
+        else if (moveUp) targetCell = currentCell + Vector3Int.up;
         else if (moveDown) targetCell = currentCell + Vector3Int.down;
         else if (moveRight) targetCell = currentCell + Vector3Int.right;
         else if (moveLeft) targetCell = currentCell + Vector3Int.left;
         else return;
 
-        if (moveUp) animator.SetInteger("Direction", 2);
-        else if (moveDown) animator.SetInteger("Direction", 0);
-        else if (moveRight) animator.SetInteger("Direction", 3);
-        else if (moveLeft) animator.SetInteger("Direction", 1);
+        // アニメーションの方向を設定する
+        // ここでは斜め移動に対応するアニメーションが存在しないと仮定
+        if (moveUp || moveUpRight || moveUpLeft) animator.SetInteger("Direction", 2);
+        else if (moveDown || moveDownRight || moveDownLeft) animator.SetInteger("Direction", 0);
+        else if (moveRight || moveDownRight || moveUpRight) animator.SetInteger("Direction", 3);
+        else if (moveLeft || moveDownLeft || moveUpLeft) animator.SetInteger("Direction", 1);
 
-
-
-
+        //壁は進まずに向きだけ変える
         if (!IsWalkableTile(targetCell)) return;
 
-        Debug.Log("targrtcell=" + targetCell);
 
 
-        if (IsEnemyTile(targetCell)&&counter==1)
+        if (IsEnemyTile(targetCell) && counter == 1)
         {
             AttackEnemy(targetCell);
             return;
         }
-
-        targetPosition = tilemap.GetCellCenterWorld(targetCell);
-
-       
-        StartCoroutine(MovePlayer());
+        else if(!IsEnemyTile(targetCell))
+        {
+            //カウンターが0ならば長押しでそのまま進む
+            targetPosition = tilemap.GetCellCenterWorld(targetCell);
+            StartCoroutine(MovePlayer());
+            enemy.TryMove();
+        }
     }
     public bool IsWalkableTile(Vector3Int cellPosition)
     {
@@ -95,7 +112,7 @@ public class PlayerMovement : MonoBehaviour
         }
 
         isMoving = false;
-        OnMoveFinished?.Invoke();
+       
     }
 
     void OnTriggerEnter2D(Collider2D other)
@@ -130,7 +147,7 @@ public class PlayerMovement : MonoBehaviour
             {
                
                 Debug.Log("敵を攻撃!");
-                
+                enemy.AttackPlayer();
                 break;
             }
         }

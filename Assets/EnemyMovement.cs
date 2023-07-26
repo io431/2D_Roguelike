@@ -21,28 +21,30 @@ public class EnemyMovement : MonoBehaviour
     private void Start()
     {
         audioSource = GetComponent<AudioSource>();
-        player.OnMoveFinished += TryMove;
+       
     }
 
-    private void OnDestroy()
-    {
-        player.OnMoveFinished -= TryMove;
-    }
 
-    private void TryMove()
+
+    public void TryMove()
     {
         if (isMoving) return;
 
-        Vector3Int playerCell = tilemap.WorldToCell(player.transform.position);
+        
         Vector3Int enemyCell = tilemap.WorldToCell(transform.position);
-        Vector3Int diff = playerCell - enemyCell;
+        Vector3Int diff = player.targetCell - enemyCell;
 
         // 斜め移動を試みる
         if (Mathf.Abs(diff.x) >= 1 && Mathf.Abs(diff.y) >= 1)
         {
             Vector3Int direction = new Vector3Int((int)Mathf.Sign(diff.x), (int)Mathf.Sign(diff.y), 0);
             Vector3Int targetCell = enemyCell + direction;
-       if (player.IsWalkableTile(targetCell))
+            if (targetCell == player.targetCell)
+            {
+                AttackPlayer();
+                return;
+            }
+            else if (player.IsWalkableTile(targetCell))
             {
                 StartCoroutine(MoveToCell(targetCell));
                 return;
@@ -53,7 +55,7 @@ public class EnemyMovement : MonoBehaviour
         if (diff.x != 0)
         {
             Vector3Int targetCell = enemyCell + new Vector3Int((int)Mathf.Sign(diff.x), 0, 0);
-            if (targetCell == playerCell)
+            if (targetCell == player.targetCell)
             {
                 AttackPlayer();
                 return;
@@ -68,7 +70,12 @@ public class EnemyMovement : MonoBehaviour
         if (diff.y != 0)
         {
             Vector3Int targetCell = enemyCell + new Vector3Int(0, (int)Mathf.Sign(diff.y), 0);
-       if (player.IsWalkableTile(targetCell))
+            if (targetCell == player.targetCell)
+            {
+                AttackPlayer();
+                return;
+            }
+            else if (player.IsWalkableTile(targetCell))
             {
                 StartCoroutine(MoveToCell(targetCell));
                 return;
@@ -77,15 +84,7 @@ public class EnemyMovement : MonoBehaviour
     }
 
 
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        // プレイヤーと接触した場合
-        if (other.gameObject.CompareTag("Player"))
-        {
-            AttackPlayer();
-        }
-    }
-
+ 
 
 
 
@@ -93,14 +92,14 @@ public class EnemyMovement : MonoBehaviour
     {//削除するかも
         TryMove();
     }
-    private void AttackPlayer()
+    public void AttackPlayer()
     {
 
+     
         // プレイヤーを攻撃する処理
 
         Debug.Log("攻撃されたよ");
         audioSource.PlayOneShot(attackSound);
-     
     }
 
     private IEnumerator MoveToCell(Vector3Int targetCell)

@@ -5,7 +5,12 @@ using UnityEngine.Tilemaps;
 
 public class PlayerMovement : MonoBehaviour
 {
-    public int hp = 30;
+    public EnemyData MonsterData;
+    public int hp;
+    public int atk;
+    public int def;
+    public int exp;
+
     public Tilemap tilemap;
     public float moveDistance = 1f;
     public delegate void PlayerMoveHandler();
@@ -20,10 +25,12 @@ public class PlayerMovement : MonoBehaviour
 
     public Vector3Int targetCell;
 
-    private void Awake()
+    private void Start()
     {
         animator = GetComponent<Animator>();
-    }
+
+       
+}
 
     private void Update()
     {
